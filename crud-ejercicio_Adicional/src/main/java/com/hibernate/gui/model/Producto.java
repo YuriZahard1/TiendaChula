@@ -1,4 +1,4 @@
-package com.hibernate.model;
+package com.hibernate.gui.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
