@@ -40,7 +40,7 @@ public class ProductoDAO {
 		Producto p = null;
 		try (Session session = ProductoConection.getSessionFactory().openSession()) {
 			transaction = session.beginTransaction();
-			p = session.get(Producto.class, id);
+			p = session.find(Producto.class, id);
 			session.remove(p);
 			transaction.commit();
 		} catch (Exception e) {
@@ -55,7 +55,7 @@ public class ProductoDAO {
 		Producto p = null;
 		try (Session session = ProductoConection.getSessionFactory().openSession()) {
 			transaction = session.beginTransaction();
-			p = session.get(Producto.class, id);
+			p = session.find(Producto.class, id);
 			transaction.commit();
 		} catch (Exception e) {
 			if (transaction != null) {
@@ -71,6 +71,51 @@ public class ProductoDAO {
 		try (Session session = ProductoConection.getSessionFactory().openSession()) {
 			transaction = session.beginTransaction();
 			producto = session.createQuery("from Producto", Producto.class).getResultList();
+			transaction.commit();
+		} catch (Exception e) {
+			if (transaction != null) {
+				transaction.rollback();
+			}
+		}
+		return producto;
+	}
+
+	public List<Producto> selectProductSinStock() {
+		Transaction transaction = null;
+		List<Producto> producto = null;
+		try (Session session = ProductoConection.getSessionFactory().openSession()) {
+			transaction = session.beginTransaction();
+			producto = session.createQuery("from Producto WHERE stock <= 0", Producto.class).getResultList();
+			transaction.commit();
+		} catch (Exception e) {
+			if (transaction != null) {
+				transaction.rollback();
+			}
+		}
+		return producto;
+	}
+
+	public List<Producto> selectProductosCaros() {
+		Transaction transaction = null;
+		List<Producto> producto = null;
+		try (Session session = ProductoConection.getSessionFactory().openSession()) {
+			transaction = session.beginTransaction();
+			producto = session.createQuery("from Producto WHERE precio > 1000", Producto.class).getResultList();
+			transaction.commit();
+		} catch (Exception e) {
+			if (transaction != null) {
+				transaction.rollback();
+			}
+		}
+		return producto;
+	}
+
+	public List<Producto> selectProductosBaratos() {
+		Transaction transaction = null;
+		List<Producto> producto = null;
+		try (Session session = ProductoConection.getSessionFactory().openSession()) {
+			transaction = session.beginTransaction();
+			producto = session.createQuery("from Producto WHERE precio < 10", Producto.class).getResultList();
 			transaction.commit();
 		} catch (Exception e) {
 			if (transaction != null) {

@@ -6,9 +6,17 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "producto")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Producto {
 
 	@Id
@@ -21,48 +29,5 @@ public class Producto {
 	int stock;
 	@Column(name = "precio")
 	int precio;
-
-	public Producto() {
-		super();
-	}
-
-	public Producto(String nombre, int stock, int precio) {
-		super();
-		this.nombre = nombre;
-		this.stock = stock;
-		this.precio = precio;
-	}
-
-	public int getCodigo() {
-		return codigo;
-	}
-
-	public void setCodigo(int codigo) {
-		this.codigo = codigo;
-	}
-
-	public String getNombre() {
-		return nombre;
-	}
-
-	public void setNombre(String nombre) {
-		this.nombre = nombre;
-	}
-
-	public int getStock() {
-		return stock;
-	}
-
-	public void setStock(int stock) {
-		this.stock = stock;
-	}
-
-	public int getPrecio() {
-		return precio;
-	}
-
-	public void setPrecio(int precio) {
-		this.precio = precio;
-	}
 
 }
