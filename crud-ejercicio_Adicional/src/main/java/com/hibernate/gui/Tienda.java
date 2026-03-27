@@ -6,8 +6,6 @@ import java.awt.EventQueue;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.List;
 
 import javax.swing.JFrame;
@@ -51,9 +49,18 @@ public class Tienda {
 	private JTextField txtNombreDis;
 	private JTextField txtAnyo;
 
+	private DefaultTableModel getModeloNoEditable() {
+	    return new DefaultTableModel() {
+	        @Override
+	        public boolean isCellEditable(int row, int column) {
+	            return false;
+	        }
+	    };
+	}
+	
 	void mostrarTabla() {
 		try {
-			DefaultTableModel model = new DefaultTableModel();
+			DefaultTableModel model = getModeloNoEditable();
 			model.addColumn("id");
 			model.addColumn("nombre");
 			model.addColumn("stock");
@@ -72,7 +79,7 @@ public class Tienda {
 
 	void mostrarTablaDis() {
 		try {
-			DefaultTableModel model = new DefaultTableModel();
+			DefaultTableModel model = getModeloNoEditable();
 			model.addColumn("id");
 			model.addColumn("nombre");
 			model.addColumn("Año de inicio");
@@ -90,7 +97,7 @@ public class Tienda {
 
 	void mostrarTablaSinStock() {
 		try {
-			DefaultTableModel model = new DefaultTableModel();
+			DefaultTableModel model = getModeloNoEditable();
 			model.addColumn("id");
 			model.addColumn("nombre");
 			model.addColumn("stock");
@@ -109,7 +116,7 @@ public class Tienda {
 
 	void mostrarTablaCaros() {
 		try {
-			DefaultTableModel model = new DefaultTableModel();
+			DefaultTableModel model = getModeloNoEditable();
 			model.addColumn("id");
 			model.addColumn("nombre");
 			model.addColumn("stock");
@@ -128,7 +135,7 @@ public class Tienda {
 
 	void mostrarTablaBaratos() {
 		try {
-			DefaultTableModel model = new DefaultTableModel();
+			DefaultTableModel model = getModeloNoEditable();
 			model.addColumn("id");
 			model.addColumn("nombre");
 			model.addColumn("stock");
@@ -152,15 +159,13 @@ public class Tienda {
 
 		// 2. Personalización global
 
-		
-
 		// Redondear todos los campos de texto globalmente
 		UIManager.put("Component.arc", 10);
 		UIManager.put("Button.arc", 10);
 		UIManager.put("Button.arc", 15);
 		UIManager.put("TextComponent.arc", 15);
 		UIManager.put("Component.focusWidth", 2);
-		
+
 		UIManager.put("Button.hoverBackground", new Color(60, 60, 60));
 
 		// Color del arco (curvatura) global para todos los botones
@@ -191,13 +196,11 @@ public class Tienda {
 		UIManager.put("TableHeader.background", Color.decode("#2d2d2d"));
 		UIManager.put("TableHeader.foreground", Color.decode("#ff5500"));
 		UIManager.put("TableHeader.separatorColor", Color.decode("#444444"));
-		
+
 		UIManager.put("Table.alternateRowColor", Color.decode("#252525"));
 
 		FlatDarkLaf.setup();
 		JFrame.setDefaultLookAndFeelDecorated(true);
-		
-		
 
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -266,22 +269,18 @@ public class Tienda {
 		// Si solo quieres activarlo en UNA tabla específica:
 		table.putClientProperty("Table.alternateRowColor", Color.decode("#252525"));
 		table.setFillsViewportHeight(true);
-		table.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				int fila = table.getSelectedRow();
-
-				String id = table.getValueAt(fila, 0).toString();
-				String nombre = table.getValueAt(fila, 1).toString();
-				String stock = table.getValueAt(fila, 2).toString();
-				String precio = table.getValueAt(fila, 3).toString();
-
-				txtId.setText(id);
-				txtNombre.setText(nombre);
-				txtStock.setText(stock);
-				txtPrecio.setText(precio);
-
-			}
+		table.getSelectionModel().addListSelectionListener(e -> {
+		    // getValueIsAdjusting evita que el evento se dispare dos veces
+		    if (!e.getValueIsAdjusting()) {
+		        int fila = table.getSelectedRow();
+		        
+		        if (fila != -1) { // Verificar que hay una fila seleccionada
+		            txtId.setText(table.getValueAt(fila, 0).toString());
+		            txtNombre.setText(table.getValueAt(fila, 1).toString());
+		            txtStock.setText(table.getValueAt(fila, 2).toString());
+		            txtPrecio.setText(table.getValueAt(fila, 3).toString());
+		        }
+		    }
 		});
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		scrollPane.setViewportView(table);
@@ -328,12 +327,26 @@ public class Tienda {
 		btnGuardar.setBackground(Color.decode("#00FFFB"));
 		btnGuardar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				String nombre = txtNombre.getText();
-				int stock = Integer.parseInt(txtStock.getText());
-				int precio = Integer.parseInt(txtPrecio.getText());
-				p = Producto.builder().nombre(nombre).stock(stock).precio(precio).build();
-				pDAO.insertProducto(p);
-				btnMostrar.doClick();
+				try {
+					String nombre = txtNombre.getText();
+					int stock = Integer.parseInt(txtStock.getText());
+					int precio = Integer.parseInt(txtPrecio.getText());
+					if (nombre.isEmpty()) {
+						JOptionPane.showMessageDialog(null, "El nombre no debe estar vacio", "ERROR_MESSAGE",
+								JOptionPane.ERROR_MESSAGE);
+					} else {
+						p = Producto.builder().nombre(nombre).stock(stock).precio(precio).build();
+						pDAO.insertProducto(p);
+						btnMostrar.doClick();
+						JOptionPane.showMessageDialog(null, "Producto creado con exito", "SUCCES_MESSAGE",
+								JOptionPane.INFORMATION_MESSAGE);
+					}
+				} catch (NumberFormatException ex) {
+					JOptionPane.showMessageDialog(null,
+							"Debes rellenar con numeros enteros los campos stock ni precios", "ERROR_MESSAGE",
+							JOptionPane.ERROR_MESSAGE);
+				}
+
 			}
 		});
 		btnGuardar.setBounds(227, 167, 105, 27);
@@ -343,16 +356,28 @@ public class Tienda {
 		btnActualizar.setBackground(Color.decode("#00FFFB"));
 		btnActualizar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				int idS = Integer.parseInt(txtId.getText());
-				String nombre = txtNombre.getText();
-				int stock = Integer.parseInt(txtStock.getText());
-				int precio = Integer.parseInt(txtPrecio.getText());
-				p = pDAO.selectProductById(idS);
-				p.setNombre(nombre);
-				p.setStock(stock);
-				p.setPrecio(precio);
-				pDAO.updateProduct(p);
-				btnMostrar.doClick();
+				try {
+					int idS = Integer.parseInt(txtId.getText());
+					String nombre = txtNombre.getText();
+					int stock = Integer.parseInt(txtStock.getText());
+					int precio = Integer.parseInt(txtPrecio.getText());
+					if (nombre.isEmpty()) {
+						JOptionPane.showMessageDialog(null, "No puedes dejar vacio el campo nombre", "ERROR_MESSAGE",
+								JOptionPane.ERROR_MESSAGE);
+					} else {
+						p = pDAO.selectProductById(idS);
+						p.setNombre(nombre);
+						p.setStock(stock);
+						p.setPrecio(precio);
+						pDAO.updateProduct(p);
+						btnMostrar.doClick();
+						JOptionPane.showMessageDialog(null, "Producto actualizado con exito", "SUCCES_MESSAGE",
+								JOptionPane.INFORMATION_MESSAGE);
+					}
+				} catch (NumberFormatException ex) {
+					JOptionPane.showMessageDialog(null, "No debes dejar campos vacios", "ERROR_MESSAGE",
+							JOptionPane.ERROR_MESSAGE);
+				}
 			}
 		});
 		btnActualizar.setBounds(227, 201, 105, 27);
@@ -362,9 +387,17 @@ public class Tienda {
 		btnBorrar.setBackground(Color.decode("#00FFFB"));
 		btnBorrar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				int idS = Integer.parseInt(txtId.getText());
-				pDAO.deleteProduct(idS);
-				btnMostrar.doClick();
+				try {
+					int idS = Integer.parseInt(txtId.getText());
+					pDAO.deleteProduct(idS);
+					btnMostrar.doClick();
+					JOptionPane.showMessageDialog(null, "Producto borrado con exito", "SUCCES_MESSAGE",
+							JOptionPane.INFORMATION_MESSAGE);
+				}catch(NumberFormatException ex) {
+					JOptionPane.showMessageDialog(null, "Debes seleccionar una id para poder borrarla", "ERROR_MESSAGE",
+							JOptionPane.ERROR_MESSAGE);
+				}
+			
 			}
 		});
 		btnBorrar.setBounds(227, 237, 105, 27);
@@ -396,20 +429,26 @@ public class Tienda {
 		btnComprar.setBackground(Color.decode("#249920"));
 		btnComprar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				int idS = Integer.parseInt(txtId.getText());
-				p = pDAO.selectProductById(idS);
-				int nuevo_stock = p.getStock() - (int) spinner.getValue();
-				if (nuevo_stock < 0) {
-					JOptionPane.showMessageDialog(null, "Se ha completado la venta de: " + p.getStock()
-							+ " unidades por un precio de: " + p.getPrecio() * p.getStock());
-					p.setStock(0);
-				} else {
-					JOptionPane.showMessageDialog(null, "Se ha completado la venta de: " + spinner.getValue()
-							+ " unidades por un precio de: " + p.getPrecio() * (int) spinner.getValue());
-					p.setStock(p.getStock() - (int) spinner.getValue());
+				try {
+					int idS = Integer.parseInt(txtId.getText());
+					p = pDAO.selectProductById(idS);
+					int nuevo_stock = p.getStock() - (int) spinner.getValue();
+					if (nuevo_stock < 0) {
+						JOptionPane.showMessageDialog(null, "Se ha completado la venta de: " + p.getStock()
+								+ " unidades por un precio de: " + p.getPrecio() * p.getStock());
+						p.setStock(0);
+					} else {
+						JOptionPane.showMessageDialog(null, "Se ha completado la venta de: " + spinner.getValue()
+								+ " unidades por un precio de: " + p.getPrecio() * (int) spinner.getValue());
+						p.setStock(p.getStock() - (int) spinner.getValue());
+					}
+					pDAO.updateProduct(p);
+					btnMostrar.doClick();
+				}catch(NumberFormatException ex) {
+					JOptionPane.showMessageDialog(null, "Debes elegir un producto que comprar", "ERROR_MESSAGE",
+							JOptionPane.ERROR_MESSAGE);
 				}
-				pDAO.updateProduct(p);
-				btnMostrar.doClick();
+				
 			}
 		});
 		btnComprar.setBounds(261, 117, 89, 23);
@@ -426,20 +465,17 @@ public class Tienda {
 		// Si solo quieres activarlo en UNA tabla específica:
 		tableDis.putClientProperty("Table.alternateRowColor", Color.decode("#252525"));
 		tableDis.setFillsViewportHeight(true);
-		tableDis.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				int fila = tableDis.getSelectedRow();
-
-				String id = tableDis.getValueAt(fila, 0).toString();
-				String nombre = tableDis.getValueAt(fila, 1).toString();
-				String anyo = tableDis.getValueAt(fila, 2).toString();
-
-				txtIdDis.setText(id);
-				txtNombreDis.setText(nombre);
-				txtAnyo.setText(anyo);
-
-			}
+		tableDis.getSelectionModel().addListSelectionListener(e -> {
+		    // getValueIsAdjusting evita que el evento se dispare dos veces
+		    if (!e.getValueIsAdjusting()) {
+		        int fila = tableDis.getSelectedRow();
+		        
+		        if (fila != -1) { // Verificar que hay una fila seleccionada
+		            txtIdDis.setText(tableDis.getValueAt(fila, 0).toString());
+		            txtNombreDis.setText(tableDis.getValueAt(fila, 1).toString());
+		            txtAnyo.setText(tableDis.getValueAt(fila, 2).toString());
+		        }
+		    }
 		});
 		tableDis.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		scrollDis.setViewportView(tableDis);
@@ -477,11 +513,23 @@ public class Tienda {
 		btnGuardarDis.setBackground(Color.decode("#4B17A3"));
 		btnGuardarDis.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				String nombre = txtNombreDis.getText();
-				int anyo = Integer.parseInt(txtAnyo.getText());
-				d = Distribuidor.builder().nombre(nombre).anyo_inicio(anyo).build();
-				dDAO.insertDistribuidor(d);
-				btnMostrarDis.doClick();
+				try {
+					String nombre = txtNombreDis.getText();
+					int anyo = Integer.parseInt(txtAnyo.getText());
+					if (nombre.isEmpty()) {
+						JOptionPane.showMessageDialog(null, "El nombre no debe estar vacio", "ERROR_MESSAGE",
+								JOptionPane.ERROR_MESSAGE);
+					} else {
+						d = Distribuidor.builder().nombre(nombre).anyo_inicio(anyo).build();
+						dDAO.insertDistribuidor(d);
+						btnMostrarDis.doClick();
+						JOptionPane.showMessageDialog(null, "Distribuidor añadido con exito", "SUCCES_MESSAGE",
+								JOptionPane.INFORMATION_MESSAGE);
+					}
+				} catch (NumberFormatException ex) {
+					JOptionPane.showMessageDialog(null, "Debes rellenar con numeros enteros el campo año de inicio",
+							"ERROR_MESSAGE", JOptionPane.ERROR_MESSAGE);
+				}
 			}
 		});
 		btnGuardarDis.setBounds(561, 167, 105, 27);
@@ -491,14 +539,26 @@ public class Tienda {
 		btnActualizarDis.setBackground(Color.decode("#4B17A3"));
 		btnActualizarDis.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				int idS = Integer.parseInt(txtIdDis.getText());
-				String nombre = txtNombreDis.getText();
-				int anyo = Integer.parseInt(txtAnyo.getText());
-				d = dDAO.selectDistribuidorById(idS);
-				d.setNombre(nombre);
-				d.setAnyo_inicio(anyo);
-				dDAO.updateDistribuidor(d);
-				btnMostrarDis.doClick();
+				try {
+					int idS = Integer.parseInt(txtIdDis.getText());
+					String nombre = txtNombreDis.getText();
+					int anyo = Integer.parseInt(txtAnyo.getText());
+					if (nombre.isEmpty()) {
+						JOptionPane.showMessageDialog(null, "No puedes dejar vacio el campo nombre", "ERROR_MESSAGE",
+								JOptionPane.ERROR_MESSAGE);
+					} else {
+						d = dDAO.selectDistribuidorById(idS);
+						d.setNombre(nombre);
+						d.setAnyo_inicio(anyo);
+						dDAO.updateDistribuidor(d);
+						btnMostrarDis.doClick();
+						JOptionPane.showMessageDialog(null, "Distribuidor actualizado con exito", "SUCCES_MESSAGE",
+								JOptionPane.INFORMATION_MESSAGE);
+					}
+				} catch (NumberFormatException ex) {
+					JOptionPane.showMessageDialog(null, "No debes dejar campos vacios", "ERROR_MESSAGE",
+							JOptionPane.ERROR_MESSAGE);
+				}
 			}
 		});
 		btnActualizarDis.setBounds(561, 201, 105, 27);
@@ -508,9 +568,17 @@ public class Tienda {
 		btnBorrarDis.setBackground(Color.decode("#4B17A3"));
 		btnBorrarDis.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				int idS = Integer.parseInt(txtIdDis.getText());
-				dDAO.deleteDistribuidor(idS);
-				btnMostrarDis.doClick();
+				try {
+					int idS = Integer.parseInt(txtIdDis.getText());
+					dDAO.deleteDistribuidor(idS);
+					btnMostrarDis.doClick();
+					JOptionPane.showMessageDialog(null, "Distribuidor borrado con exito", "SUCCES_MESSAGE",
+							JOptionPane.INFORMATION_MESSAGE);
+				}catch (NumberFormatException ex) {
+					JOptionPane.showMessageDialog(null, "Debes seleccionar una id para poder borrarla", "ERROR_MESSAGE",
+							JOptionPane.ERROR_MESSAGE);
+				}
+				
 			}
 		});
 		btnBorrarDis.setBounds(561, 237, 105, 27);
