@@ -1,5 +1,7 @@
 package com.hibernate.gui;
 
+import java.awt.Color;
+
 import java.awt.EventQueue;
 
 import java.awt.event.ActionEvent;
@@ -14,8 +16,10 @@ import javax.swing.JTable;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.swing.UIManager;
 import javax.swing.table.DefaultTableModel;
 
+import com.formdev.flatlaf.FlatDarkLaf;
 import com.hibernate.gui.dao.DistribuidorDAO;
 import com.hibernate.gui.dao.ProductoDAO;
 import com.hibernate.gui.model.Distribuidor;
@@ -23,6 +27,7 @@ import com.hibernate.gui.model.Producto;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JSpinner;
 
@@ -144,6 +149,56 @@ public class Tienda {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
+
+		// 2. Personalización global
+
+		
+
+		// Redondear todos los campos de texto globalmente
+		UIManager.put("Component.arc", 10);
+		UIManager.put("Button.arc", 10);
+		UIManager.put("Button.arc", 15);
+		UIManager.put("TextComponent.arc", 15);
+		UIManager.put("Component.focusWidth", 2);
+		
+		UIManager.put("Button.hoverBackground", new Color(60, 60, 60));
+
+		// Color del arco (curvatura) global para todos los botones
+		UIManager.put("Button.arc", 20);
+
+		// Color del borde cuando el botón tiene el foco (tabulador)
+		UIManager.put("Button.focusColor", new Color(0, 150, 200));
+
+		// O usar colores específicos para estados (Hover, Pressed)
+		UIManager.put("Button.hoverBackground", new Color(50, 50, 50));
+		UIManager.put("Button.focusedBackground", new Color(70, 70, 70));
+		UIManager.put("Component.accentColor", new Color(255, 128, 0));
+		UIManager.put("Button.foreground", Color.WHITE); // Texto blanco para que contraste
+
+		UIManager.put("Table.background", Color.decode("#1e1e1e"));
+		UIManager.put("Table.foreground", Color.decode("#ffffff"));
+
+		// Color de la fila seleccionada
+		UIManager.put("Table.selectionBackground", Color.decode("#a00123"));
+		UIManager.put("Table.selectionForeground", Color.decode("#ffffff"));
+
+		// Color de la cuadrícula (las líneas divisorias)
+		UIManager.put("Table.gridColor", Color.decode("#333333"));
+		UIManager.put("Table.showHorizontalLines", true);
+		UIManager.put("Table.showVerticalLines", true);
+
+		// IMPORTANTE: El encabezado (Header) se configura aparte
+		UIManager.put("TableHeader.background", Color.decode("#2d2d2d"));
+		UIManager.put("TableHeader.foreground", Color.decode("#ff5500"));
+		UIManager.put("TableHeader.separatorColor", Color.decode("#444444"));
+		
+		UIManager.put("Table.alternateRowColor", Color.decode("#252525"));
+
+		FlatDarkLaf.setup();
+		JFrame.setDefaultLookAndFeelDecorated(true);
+		
+		
+
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -201,10 +256,16 @@ public class Tienda {
 		frmTienda.getContentPane().add(btnMostrarDis);
 
 		JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setBorder(BorderFactory.createEmptyBorder());
+		// O si usas FlatLaf, puedes redondearlo
+		scrollPane.putClientProperty("JComponent.outline", Color.decode("#a00123"));
 		scrollPane.setBounds(29, 12, 191, 149);
 		frmTienda.getContentPane().add(scrollPane);
 
 		table = new JTable();
+		// Si solo quieres activarlo en UNA tabla específica:
+		table.putClientProperty("Table.alternateRowColor", Color.decode("#252525"));
+		table.setFillsViewportHeight(true);
 		table.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -264,6 +325,7 @@ public class Tienda {
 		txtPrecio.setColumns(10);
 
 		JButton btnGuardar = new JButton("Guardar");
+		btnGuardar.setBackground(Color.decode("#00FFFB"));
 		btnGuardar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				String nombre = txtNombre.getText();
@@ -278,6 +340,7 @@ public class Tienda {
 		frmTienda.getContentPane().add(btnGuardar);
 
 		JButton btnActualizar = new JButton("Actualizar");
+		btnActualizar.setBackground(Color.decode("#00FFFB"));
 		btnActualizar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				int idS = Integer.parseInt(txtId.getText());
@@ -296,6 +359,7 @@ public class Tienda {
 		frmTienda.getContentPane().add(btnActualizar);
 
 		JButton btnBorrar = new JButton("Borrar");
+		btnBorrar.setBackground(Color.decode("#00FFFB"));
 		btnBorrar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				int idS = Integer.parseInt(txtId.getText());
@@ -329,6 +393,7 @@ public class Tienda {
 		frmTienda.getContentPane().add(spinner);
 
 		JButton btnComprar = new JButton("Comprar");
+		btnComprar.setBackground(Color.decode("#249920"));
 		btnComprar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				int idS = Integer.parseInt(txtId.getText());
@@ -351,10 +416,16 @@ public class Tienda {
 		frmTienda.getContentPane().add(btnComprar);
 
 		JScrollPane scrollDis = new JScrollPane();
+		scrollDis.setBorder(BorderFactory.createEmptyBorder());
+		// O si usas FlatLaf, puedes redondearlo
+		scrollDis.putClientProperty("JComponent.outline", Color.decode("#a00123"));
 		scrollDis.setBounds(381, 12, 191, 149);
 		frmTienda.getContentPane().add(scrollDis);
 
 		tableDis = new JTable();
+		// Si solo quieres activarlo en UNA tabla específica:
+		tableDis.putClientProperty("Table.alternateRowColor", Color.decode("#252525"));
+		tableDis.setFillsViewportHeight(true);
 		tableDis.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -403,6 +474,7 @@ public class Tienda {
 		frmTienda.getContentPane().add(txtAnyo);
 
 		JButton btnGuardarDis = new JButton("Guardar");
+		btnGuardarDis.setBackground(Color.decode("#4B17A3"));
 		btnGuardarDis.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String nombre = txtNombreDis.getText();
@@ -416,6 +488,7 @@ public class Tienda {
 		frmTienda.getContentPane().add(btnGuardarDis);
 
 		JButton btnActualizarDis = new JButton("Actualizar");
+		btnActualizarDis.setBackground(Color.decode("#4B17A3"));
 		btnActualizarDis.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				int idS = Integer.parseInt(txtIdDis.getText());
@@ -432,6 +505,7 @@ public class Tienda {
 		frmTienda.getContentPane().add(btnActualizarDis);
 
 		JButton btnBorrarDis = new JButton("Borrar");
+		btnBorrarDis.setBackground(Color.decode("#4B17A3"));
 		btnBorrarDis.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				int idS = Integer.parseInt(txtIdDis.getText());
