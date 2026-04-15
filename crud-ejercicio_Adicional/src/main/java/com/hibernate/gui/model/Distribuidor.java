@@ -31,9 +31,10 @@ import lombok.ToString;
 public class Distribuidor {
 
     @Id
+    @EqualsAndHashCode.Include // Este es el campo clave para comparar
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "idDis")
-    @EqualsAndHashCode.Include // Este es el campo clave para comparar
+    
     int codigo;
 
     @Column(name = "nombre")
@@ -42,7 +43,7 @@ public class Distribuidor {
     @Column(name = "anyo_inicio")
     int anyo_inicio;
     
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "PxD",
         joinColumns = @JoinColumn(name = "idDist"),

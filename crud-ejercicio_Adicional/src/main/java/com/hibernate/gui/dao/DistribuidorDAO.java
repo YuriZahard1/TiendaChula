@@ -85,9 +85,38 @@ public class DistribuidorDAO {
 	
 	public List<Distribuidor> selectAllDistribuidorWithProducts() {
 	    try (Session session = ProductoConection.getSessionFactory().openSession()) {
-	        // "JOIN FETCH" obliga a traer la colección en la misma consulta
-	        return session.createQuery("SELECT DISTINCT d FROM Distribuidor d LEFT JOIN FETCH d.productos", Distribuidor.class)
-	                      .getResultList();
+	        // "JOIN FETCH" le dice a Hibernate: "Sé que es LAZY, pero tráelo ahora en una sola consulta"
+	        String hql = "SELECT DISTINCT d FROM Distribuidor d LEFT JOIN FETCH d.productos";
+	        return session.createQuery(hql, Distribuidor.class).getResultList();
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return null;
+	    }
+	}
+	
+	public void asignarProductoADistribuidor(int idDist, int idProd) {
+	    Transaction transaction = null;
+	    try (Session session = ProductoConection.getSessionFactory().openSession()) {
+	        transaction = session.beginTransaction();
+
+	        // 1. Cargamos los objetos DENTRO de la sesión activa
+	        // Al usar session.get, Hibernate tiene control total
+	        Distribuidor dist = session.get(Distribuidor.class, idDist);
+	        Producto prod = session.get(Producto.class, idProd);
+
+	        if (dist != null && prod != null) {
+	            // 2. Como la sesión está abierta, .getProductos() no fallará
+	            // Hibernate cargará la colección automáticamente aquí (Lazy loading interno)
+	            dist.getProductos().add(prod);
+	            
+	            // 3. Guardamos los cambios
+	            session.merge(dist); 
+	        }
+
+	        transaction.commit();
+	    } catch (Exception e) {
+	        if (transaction != null) transaction.rollback();
+	        e.printStackTrace();
 	    }
 	}
 	

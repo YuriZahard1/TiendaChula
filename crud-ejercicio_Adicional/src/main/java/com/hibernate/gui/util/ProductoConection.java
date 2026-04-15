@@ -9,6 +9,8 @@ import org.hibernate.cfg.Environment;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.cfg.AvailableSettings;
 
+import com.hibernate.gui.model.Cliente;
+import com.hibernate.gui.model.Compra;
 import com.hibernate.gui.model.Distribuidor;
 import com.hibernate.gui.model.Producto;
 
@@ -33,6 +35,8 @@ public class ProductoConection {
 
 				configuration.addAnnotatedClass(Producto.class);
 				configuration.addAnnotatedClass(Distribuidor.class);
+				configuration.addAnnotatedClass(Cliente.class);
+				configuration.addAnnotatedClass(Compra.class);
 
 				ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
 						.applySettings(configuration.getProperties()).build();
