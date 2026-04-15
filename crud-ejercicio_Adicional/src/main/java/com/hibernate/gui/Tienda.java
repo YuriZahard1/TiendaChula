@@ -48,6 +48,7 @@ public class Tienda {
 	private JTextField txtIdDis;
 	private JTextField txtNombreDis;
 	private JTextField txtAnyo;
+	private JTable tablePxd;
 
 	private DefaultTableModel getModeloNoEditable() {
 	    return new DefaultTableModel() {
@@ -95,6 +96,38 @@ public class Tienda {
 		}
 	}
 
+	public void mostrarTablaPxD() {
+	    try {
+	        // 1. Creamos el modelo usando tu método auxiliar (igual que en las otras tablas)
+	        DefaultTableModel model = getModeloNoEditable();
+	        model.addColumn("ID Distribuidor");
+	        model.addColumn("ID Producto");
+	        
+	        // Limpiamos filas (aunque al crear uno nuevo ya nace vacío)
+	        model.setRowCount(0);
+
+	        // 2. Pedimos los datos al DAO
+	        List<Distribuidor> distribuidores = dDAO.selectAllDistribuidorWithProducts();
+
+	        // 3. Rellenar el modelo recorriendo la relación ManyToMany
+	        if (distribuidores != null) {
+	            for (Distribuidor d : distribuidores) {
+	                for (Producto p : d.getProductos()) {
+	                    Object[] fila = { d.getCodigo(), p.getCodigo() };
+	                    model.addRow(fila);
+	                }
+	            }
+	        }
+
+	        // 4. Asignar el modelo a la tabla
+	        tablePxd.setModel(model);
+
+	    } catch (Exception e) {
+	        System.err.println("Error al cargar la tabla de relaciones: " + e.getMessage());
+	        e.printStackTrace();
+	    }
+	}
+	
 	void mostrarTablaSinStock() {
 		try {
 			DefaultTableModel model = getModeloNoEditable();
@@ -583,10 +616,96 @@ public class Tienda {
 		});
 		btnBorrarDis.setBounds(561, 237, 105, 27);
 		frmTienda.getContentPane().add(btnBorrarDis);
+		
+		JScrollPane scrollPxD = new JScrollPane();
+		scrollPxD.setBounds(271, 276, 172, 120);
+		frmTienda.getContentPane().add(scrollPxD);
+		
+		tablePxd = new JTable();
+		// Si solo quieres activarlo en UNA tabla específica:
+		tablePxd.putClientProperty("Table.alternateRowColor", Color.decode("#252525"));
+		tablePxd.setFillsViewportHeight(true);
+		tablePxd.getSelectionModel().addListSelectionListener(e -> {
+		    // getValueIsAdjusting evita que el evento se dispare dos veces
+		    if (!e.getValueIsAdjusting()) {
+		        int fila = tablePxd.getSelectedRow();
+		        
+		        if (fila != -1) { // Verificar que hay una fila seleccionada
+		            txtIdDis.setText(tablePxd.getValueAt(fila, 0).toString());
+		            txtId.setText(tablePxd.getValueAt(fila, 1).toString());
+		        }
+		    }
+		});
+		tablePxd.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+		scrollPxD.setViewportView(tablePxd);
+		frmTienda.getContentPane().add(scrollPxD);
+		
+		JButton btnAsignar = new JButton("Asignar");
+		btnAsignar.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent arg0) {
+		        try {
+		            // 1. Obtener IDs de los campos de texto actuales
+		            int idProd = Integer.parseInt(txtId.getText());
+		            int idDist = Integer.parseInt(txtIdDis.getText());
+
+		            // 2. Buscar los objetos en la DB
+		            Producto productoSeleccionado = pDAO.selectProductById(idProd);
+		            Distribuidor distribuidorSeleccionado = dDAO.selectDistribuidorById(idDist);
+
+		            if (productoSeleccionado != null && distribuidorSeleccionado != null) {
+		                // 3. Vincular (ManyToMany)
+		                distribuidorSeleccionado.getProductos().add(productoSeleccionado);
+		                
+		                // 4. Persistir en la base de datos
+		                dDAO.updateDistribuidor(distribuidorSeleccionado);
+
+		                // 5. Actualizar la tabla visual
+		                mostrarTablaPxD();
+		                
+		                JOptionPane.showMessageDialog(null, "Relación guardada correctamente");
+		            }
+		        } catch (NumberFormatException ex) {
+		            JOptionPane.showMessageDialog(null, "Selecciona un producto y un distribuidor primero");
+		        }
+		    }
+		});
+		btnAsignar.setBounds(455, 351, 105, 27);
+		frmTienda.getContentPane().add(btnAsignar);
+		
+		JButton btnBorrarPxD = new JButton("Borrar");
+		btnBorrarPxD.setBounds(455, 286, 105, 27);
+		btnBorrarPxD.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent arg0) {
+		        if (txtId.getText().isEmpty() || txtIdDis.getText().isEmpty()) {
+		            JOptionPane.showMessageDialog(null, "Selecciona una fila de la tabla de relaciones");
+		            return;
+		        }
+
+		        try {
+		            int idProd = Integer.parseInt(txtId.getText());
+		            int idDist = Integer.parseInt(txtIdDis.getText());
+
+		            // 1. Llamar al borrado directo
+		            dDAO.eliminarRelacionFisica(idDist, idProd);
+
+		            // 2. RECARGAR DATOS (Muy importante)
+		            // Asegúrate de que mostrarTablaPxD() haga una nueva consulta a la DB
+		            mostrarTablaPxD(); 
+		            
+		            JOptionPane.showMessageDialog(null, "Relación eliminada permanentemente.");
+
+		        } catch (Exception e) {
+		            JOptionPane.showMessageDialog(null, "Error crítico: " + e.getMessage());
+		        }
+		    }
+		});
+		frmTienda.getContentPane().add(btnBorrarPxD);
 
 		btnMostrar.setVisible(false);
 		btnMostrarDis.setVisible(false);
 		mostrarTabla();
 		mostrarTablaDis();
+		// Al final de initialize()
+		mostrarTablaPxD();
 	}
 }

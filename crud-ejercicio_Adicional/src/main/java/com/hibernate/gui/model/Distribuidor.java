@@ -9,6 +9,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -18,32 +20,36 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+
 @Entity
-@Table(name = "producto")
+@Table(name = "distribuidor")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true) // Solo usa lo que marquemos
-public class Producto {
+public class Distribuidor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id")
+    @Column(name = "idDis")
     @EqualsAndHashCode.Include // Este es el campo clave para comparar
-    private int codigo;
+    int codigo;
 
     @Column(name = "nombre")
-    private String nombre;
+    String nombre;
 
-    @Column(name = "stock")
-    private int stock;
-
-    @Column(name = "precio")
-    private int precio;
-
-    @ManyToMany(mappedBy = "productos", fetch = FetchType.EAGER)
+    @Column(name = "anyo_inicio")
+    int anyo_inicio;
+    
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "PxD",
+        joinColumns = @JoinColumn(name = "idDist"),
+        inverseJoinColumns = @JoinColumn(name = "idProd")
+    )
     @ToString.Exclude
-    @Builder.Default // Evita que Lombok cree el Set como null
-    private Set<Distribuidor> distribuidores = new HashSet<>();
+    @Builder.Default // Evita que Lombok cree el Set como null al usar Builder
+    private Set<Producto> productos = new HashSet<>();
+	
 }

@@ -51,5 +51,10 @@
     <artifactId>flatlaf-intellij-themes</artifactId>
     <version>3.5.1</version>
 </dependency>
- </dependencies>
+ <dependency>
+ 	<groupId>net.ejemplo</groupId>
+ 	<artifactId>crud-ejemplo</artifactId>
+ 	<version>0.0.1-SNAPSHOT</version>
+ </dependency>
+</dependencies>
 </project>

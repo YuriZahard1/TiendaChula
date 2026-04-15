@@ -22,7 +22,7 @@ public class ProductoConection {
 
 				Properties settings = new Properties();
 				settings.put(AvailableSettings.JAKARTA_JDBC_DRIVER, "com.mysql.cj.jdbc.Driver");
-				settings.put(AvailableSettings.JAKARTA_JDBC_URL, "jdbc:mysql://127.0.0.1:3306/productos?useSSL=false");
+				settings.put(AvailableSettings.JAKARTA_JDBC_URL, "jdbc:mysql://127.0.0.1:3307/productos?useSSL=false");
 				settings.put(AvailableSettings.JAKARTA_JDBC_USER, "alumno");
 				settings.put(AvailableSettings.JAKARTA_JDBC_PASSWORD, "Alumno.1");
 				settings.put(AvailableSettings.SHOW_SQL, "true");
