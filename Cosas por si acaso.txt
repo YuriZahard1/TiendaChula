@@ -326,3 +326,72 @@ public class AppGestionEmpleados {
         }
     }
 }
+
+import java.sql.*;
+
+public class RegistroCompletoEscuela {
+
+    static final String URL = "jdbc:mysql://localhost:3306/escuela";
+    static final String USER = "root";
+    static final String PASS = "admin";
+
+    public static void main(String[] args) {
+        
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASS)) {
+            conn.setAutoCommit(false); // TRASACCION: O se guarda todo o nada
+
+            // 1. CREAR EL CURSO Y RECUPERAR SU ID
+            String sqlCurso = "INSERT INTO cursos (titulo) VALUES (?)";
+            int idCurso = -1;
+            try (PreparedStatement ps = conn.prepareStatement(sqlCurso, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, "Programación Java 101");
+                ps.executeUpdate();
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) idCurso = rs.getInt(1);
+            }
+
+            // 2. CREAR EL ESTUDIANTE Y RECUPERAR SU ID
+            String sqlEst = "INSERT INTO estudiantes (nombre) VALUES (?)";
+            int idEstudiante = -1;
+            try (PreparedStatement ps = conn.prepareStatement(sqlEst, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, "Lucía Fernández");
+                ps.executeUpdate();
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) idEstudiante = rs.getInt(1);
+            }
+
+            // 3. UNIRLOS EN LA TABLA INTERMEDIA (La "relación")
+            if (idCurso != -1 && idEstudiante != -1) {
+                String sqlRelacion = "INSERT INTO estudiantes_cursos (id_estudiante, id_curso) VALUES (?, ?)";
+                try (PreparedStatement ps = conn.prepareStatement(sqlRelacion)) {
+                    ps.setInt(1, idEstudiante);
+                    ps.setInt(2, idCurso);
+                    ps.executeUpdate();
+                }
+                System.out.println("Inscripción completada: Lucía en Programación Java.");
+            }
+
+            conn.commit(); // Confirmamos todos los cambios a la vez
+            
+            // 4. CONSULTA FINAL PARA COMPROBAR
+            mostrarDatos(conn, idEstudiante);
+
+        } catch (SQLException e) {
+            System.err.println("Error, haciendo rollback: " + e.getMessage());
+        }
+    }
+
+    private static void mostrarDatos(Connection conn, int idEst) throws SQLException {
+        String sql = "SELECT e.nombre, c.titulo FROM estudiantes e " +
+                     "JOIN estudiantes_cursos ec ON e.id = ec.id_estudiante " +
+                     "JOIN cursos c ON c.id = ec.id_curso " +
+                     "WHERE e.id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idEst);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                System.out.println("Resultado: " + rs.getString("nombre") + " -> " + rs.getString("titulo"));
+            }
+        }
+    }
+}
