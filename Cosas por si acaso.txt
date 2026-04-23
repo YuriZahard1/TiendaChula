@@ -395,3 +395,78 @@ public class RegistroCompletoEscuela {
         }
     }
 }
+
+1. Relación Muchos a Muchos (N:M)Es la que más "magia" hace. Hibernate gestiona la tabla intermedia por ti. Solo necesitas la anotación @ManyToMany.En Java:Java@Entity
+public class Estudiante {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @ManyToMany(cascade = CascadeType.ALL)
+    @JoinTable(
+        name = "estudiantes_cursos", // Nombre de la tabla intermedia
+        joinColumns = @JoinColumn(name = "id_estudiante"),
+        inverseJoinColumns = @JoinColumn(name = "id_curso")
+    )
+    private List<Curso> cursos = new ArrayList<>();
+}
+Cómo se guarda:JavaCurso java = new Curso("Java 101");
+estudiante.getCursos().add(java);
+
+session.persist(estudiante); // Hibernate inserta el alumno, el curso Y la relación.
+2. Relación 1 a Muchos (1:N)Es la más común (ej: Departamento $\rightarrow$ Empleados). Aquí usamos @OneToMany y @ManyToOne.En Java:Java@Entity
+public class Departamento {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @OneToMany(mappedBy = "departamento", cascade = CascadeType.ALL)
+    private List<Empleado> empleados;
+}
+
+@Entity
+public class Empleado {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @ManyToOne
+    @JoinColumn(name = "id_departamento") // Aquí se crea la FK
+    private Departamento departamento;
+}
+3. Relación 1 a 1 (1:1)Un objeto tiene exactamente otro objeto (ej: Usuario $\rightarrow$ Perfil).En Java:Java@Entity
+public class Usuario {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "id_perfil") // La FK se guarda en la tabla usuario
+    private Perfil perfil;
+}
+
+1. Validaciones de Presencia (Las más usadas)
+Son las reinas de cualquier formulario o entidad.
+
+@NotNull: El valor no puede ser nulo, pero sí puede estar vacío. (Ej: un String "" o una lista [] pasan la validación).
+
+@NotEmpty: No puede ser nulo ni tener tamaño 0. Se usa para Strings, Colecciones o Arrays.
+
+@NotBlank: (Solo para Strings). El nivel más alto. No puede ser nulo, no puede estar vacío y no puede tener solo espacios en blanco ("  " falla).
+
+2. Validaciones Numéricas
+@Min(valor) y @Max(valor): Define los límites numéricos (enteros).
+
+@DecimalMin("valor") y @DecimalMax("valor"): Para números con decimales (double, BigDecimal).
+
+@Positive / @PositiveOrZero: Asegura que el número sea mayor (o igual) a cero.
+
+@Negative / @NegativeOrZero: Lo mismo pero para números negativos.
+
+3. Validaciones de Texto y Formato
+@Size(min=x, max=y): Controla la longitud de un String o el número de elementos de una lista.
+
+@Email: Comprueba que el texto tenga un formato de correo electrónico válido (que tenga @, punto, etc.).
+
+@Pattern(regexp = "..."): La más potente. Validas usando Expresiones Regulares (ej: para un DNI o un teléfono específico).
+
+4. Validaciones de Fecha
+@Past / @PastOrPresent: La fecha debe ser anterior a hoy (ej: fecha de nacimiento).
+
+@Future / @FutureOrPresent: La fecha debe ser posterior a hoy (ej: fecha de una reserva o caducidad).
