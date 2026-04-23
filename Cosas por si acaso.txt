@@ -220,3 +220,109 @@ public void marcarComoAgotado(int id) {
     tx.commit();
     session.close();
 }
+
+
+
+@Entity
+@Table(name = "empleados") // Nombre de la tabla en MySQL
+@Inheritance(strategy = InheritanceType.JOINED)
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public abstract class Empleado {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_empleado") // Nombre de la columna ID
+    private int id;
+
+    @Column(name = "nombre_completo", nullable = false, length = 100)
+    private String nombre;
+
+    @Column(name = "sueldo_base")
+    private double sueldoBase;
+}
+
+@Entity
+@Table(name = "comerciales")
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class Comercial extends Empleado {
+
+    @Column(name = "comision_ventas")
+    private double comision;
+}
+
+@Entity
+@Table(name = "repartidores")
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class Repartidor extends Empleado {
+
+    @Column(name = "zona_reparto", length = 50)
+    private String zona;
+}
+
+package com.hibernate.gui;
+
+import java.util.List;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import com.hibernate.gui.model.*;
+import com.hibernate.gui.util.HibernateUtil;
+
+public class AppGestionEmpleados {
+
+    public static void main(String[] args) {
+        
+        // 1. CREACIÓN DE OBJETOS (Aquí es donde decides qué es cada uno)
+        Comercial c1 = new Comercial();
+        c1.setNombre("Ana García");
+        c1.setSueldoBase(1500.0);
+        c1.setComision(400.0);
+
+        Repartidor r1 = new Repartidor();
+        r1.setNombre("Juan Pérez");
+        r1.setSueldoBase(1100.0);
+        r1.setZona("Norte");
+
+        // 2. GUARDADO EN BASE DE DATOS
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Transaction tx = session.beginTransaction();
+            
+            session.persist(c1);
+            session.persist(r1);
+            
+            tx.commit();
+            System.out.println("--- Empleados guardados correctamente ---\n");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 3. RECUPERACIÓN Y POLIMORFISMO
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            
+            // Pedimos una lista de la clase PADRE (Empleado)
+            List<Empleado> lista = session.createQuery("from Empleado", Empleado.class).list();
+
+            System.out.println("LISTADO DE NÓMINAS:");
+            System.out.println("-------------------");
+
+            for (Empleado e : lista) {
+                // Aquí es donde ocurre la magia del instanceof
+                if (e instanceof Comercial com) {
+                    double total = com.getSueldoBase() + com.getComision();
+                    System.out.println("[COMERCIAL] " + com.getNombre() + 
+                                     " | Sueldo Total: " + total + "€");
+                } 
+                else if (e instanceof Repartidor rep) {
+                    System.out.println("[REPARTIDOR] " + rep.getNombre() + 
+                                     " | Zona: " + rep.getZona() + 
+                                     " | Sueldo: " + rep.getSueldoBase() + "€");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
