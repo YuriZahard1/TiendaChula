@@ -1,0 +1,222 @@
+1. Single Table (Una sola tabla)
+Es la estrategia por defecto. Todas las clases de la jerarquía se guardan en la misma tabla. Se usa una columna especial llamada Discriminator para saber a qué subclase pertenece cada fila.
+
+Pros: Muy rápida para consultas (no hay JOINs).
+
+Contras: Las columnas de las subclases deben permitir valores nulos (NULL), ya que una fila de la "Clase A" tendrá vacíos los campos de la "Clase B".
+
+Java
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "tipo_usuario")
+public class Usuario {
+    @Id @GeneratedValue private Long id;
+    private String nombre;
+}
+
+@Entity
+@DiscriminatorValue("ADMIN")
+public class Administrador extends Usuario {
+    private String claveSeguridad;
+}
+2. Joined Table (Tablas unidas)
+Cada clase tiene su propia tabla. La tabla de la subclase solo contiene sus atributos específicos y una Llave Primaria que es también Llave Foránea hacia la tabla padre.
+
+Pros: Base de datos normalizada, no hay columnas con nulos innecesarios.
+
+Contras: Consultar requiere hacer JOIN, lo que puede ser lento si la jerarquía es muy profunda.
+
+Java
+@Entity
+@Inheritance(strategy = InheritanceType.JOINED)
+public class Vehiculo {
+    @Id @GeneratedValue private Long id;
+    private String marca;
+}
+
+@Entity
+public class Coche extends Vehiculo {
+    private int numeroPuertas;
+}
+3. Table Per Class (Una tabla por cada clase concreta)
+Cada subclase tiene su propia tabla con todos los campos (los suyos y los que hereda del padre). La clase padre no suele tener tabla propia si es abstracta.
+
+Pros: Consultas directas a una subclase son muy rápidas.
+
+Contras: Si haces una consulta sobre la clase padre (ej. "buscar todos los vehículos"), Hibernate tiene que hacer un UNION de todas las tablas, lo cual es muy costoso.
+
+Java
+@Entity
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+public abstract class Animal {
+    @Id private Long id; // No se recomienda usar IDENTITY aquí
+    private String nombre;
+}
+
+@Entity
+public class Perro extends Animal {
+    private String raza;
+}
+
+
+
+
+1. La Clase Padre (Producto)
+Java
+package com.hibernate.gui.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "producto")
+@Inheritance(strategy = InheritanceType.JOINED) // <--- Estrategia de herencia
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Producto {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String nombre;
+    private double precio;
+}
+2. La Clase Hija (ProductoPerecedero)
+Esta clase hereda de Producto y añade su propio atributo. Hibernate creará una tabla aparte conectada por el id.
+
+Java
+package com.hibernate.gui.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "producto_perecedero")
+@Data
+@EqualsAndHashCode(callSuper = true) // Importante para que Lombok considere al padre
+@NoArgsConstructor
+public class ProductoPerecedero extends Producto {
+
+    private String fechaCaducidad;
+
+    // Constructor útil
+    public ProductoPerecedero(String nombre, double precio, String fechaCaducidad) {
+        this.setNombre(nombre);
+        this.setPrecio(precio);
+        this.fechaCaducidad = fechaCaducidad;
+    }
+}
+3. La Clase de Conexión (ProductoConection)
+¡Ojo aquí! Debes registrar AMBAS clases para que Hibernate entienda la relación.
+
+Java
+package com.hibernate.gui.util;
+
+import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
+import com.hibernate.gui.model.*;
+
+public class ProductoConection {
+    private static SessionFactory sessionFactory;
+
+    public static SessionFactory getSessionFactory() {
+        if (sessionFactory == null) {
+            Configuration config = new Configuration();
+            config.configure("hibernate.cfg.xml");
+            
+            // REGISTRAMOS PADRE E HIJA
+            config.addAnnotatedClass(Producto.class);
+            config.addAnnotatedClass(ProductoPerecedero.class);
+            
+            sessionFactory = config.buildSessionFactory();
+        }
+        return sessionFactory;
+    }
+}
+
+4. Ejemplo de uso (Main o DAO)
+Lo bonito de la herencia es que puedes guardar un ProductoPerecedero y luego buscarlo como un Producto genérico.
+
+Java
+public void guardarEjemplo() {
+    Session session = ProductoConection.getSessionFactory().openSession();
+    Transaction tx = session.beginTransaction();
+
+    // Creamos un producto hijo
+    ProductoPerecedero leche = new ProductoPerecedero("Leche Entera", 1.20, "2026-05-01");
+
+    session.persist(leche); // Hibernate insertará en 'producto' y en 'producto_perecedero' automáticamente
+    
+    tx.commit();
+    session.close();
+}
+
+Java
+@Entity
+@Table(name = "agotados")
+public class ProductoAgotado {
+    @Id
+    private int id; // Este será el mismo ID que el del producto
+
+    @OneToOne
+    @MapsId 
+    @JoinColumn(name = "id_producto")
+    private Producto producto;
+}
+
+if (!producto.isTieneStock()) {
+    String sql = "INSERT INTO agotados (id_producto) VALUES (:id)";
+    session.createNativeQuery(sql)
+           .setParameter("id", producto.getId())
+           .executeUpdate();
+}
+
+public void actualizarStock(int productoId, boolean tieneStock) {
+    Session session = ProductoConection.getSessionFactory().openSession();
+    Transaction tx = session.beginTransaction();
+
+    // 1. Buscamos el producto
+    Producto producto = session.get(Producto.class, productoId);
+    producto.setTieneStock(tieneStock);
+
+    if (!tieneStock) {
+        // 2. Si no hay stock, creamos el "marcado" en la otra tabla
+        ProductoAgotado agotado = new ProductoAgotado();
+        agotado.setProducto(producto); // Vinculamos ambos
+        session.persist(agotado); 
+    } else {
+        // 3. Si vuelve a haber stock, borramos el registro de la tabla Agotados
+        ProductoAgotado agotado = session.get(ProductoAgotado.class, productoId);
+        if (agotado != null) {
+            session.remove(agotado);
+        }
+    }
+
+    tx.commit();
+    session.close();
+}
+
+2. Opción con SQL Nativo (Si no quieres mapear la relación)
+Si prefieres no complicarte con objetos y solo quieres que al agotarse se inserte el ID en la segunda tabla por "fuerza bruta":
+
+Java
+public void marcarComoAgotado(int id) {
+    Session session = ProductoConection.getSessionFactory().openSession();
+    Transaction tx = session.beginTransaction();
+
+    // Actualizamos la tabla principal
+    session.createNativeQuery("UPDATE producto SET tieneStock = false WHERE id = :id")
+           .setParameter("id", id)
+           .executeUpdate();
+
+    // Insertamos en la tabla de agotados (solo el ID)
+    // Usamos IGNORE por si ya estaba insertado antes
+    session.createNativeQuery("INSERT IGNORE INTO agotados (id_producto) VALUES (:id)")
+           .setParameter("id", id)
+           .executeUpdate();
+
+    tx.commit();
+    session.close();
+}
