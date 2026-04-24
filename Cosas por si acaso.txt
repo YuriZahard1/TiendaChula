@@ -607,3 +607,82 @@ public class ExpedienteClinico {
     @OneToOne(mappedBy = "expediente")
     private Mascota mascota;
 }
+
+1. Herencia JOINED (SQL Manual)
+Como SQL no entiende de "clases", tienes que insertar en las dos tablas manualmente y asegurarte de que compartan el ID.
+
+Java
+public void guardarVeterinario(Veterinario v) throws SQLException {
+    String sqlUsuario = "INSERT INTO usuarios (nombre, email) VALUES (?, ?)";
+    String sqlVet = "INSERT INTO veterinarios (id_usuario, num_colegiado) VALUES (?, ?)";
+
+    try (Connection conn = DriverManager.getConnection(URL, USER, PASS)) {
+        conn.setAutoCommit(false); // Transacción para que se guarden ambos o ninguno
+
+        // 1. Insertar en tabla PADRE
+        PreparedStatement ps1 = conn.prepareStatement(sqlUsuario, Statement.RETURN_GENERATED_KEYS);
+        ps1.setString(1, v.getNombre());
+        ps1.setString(2, v.getEmail());
+        ps1.executeUpdate();
+
+        // Recuperar el ID que generó la tabla padre
+        ResultSet rs = ps1.getGeneratedKeys();
+        int idGenerado = rs.next() ? rs.getInt(1) : -1;
+
+        // 2. Insertar en tabla HIJA usando ese mismo ID
+        PreparedStatement ps2 = conn.prepareStatement(sqlVet);
+        ps2.setInt(1, idGenerado);
+        ps2.setString(2, v.getNumColegiado());
+        ps2.executeUpdate();
+
+        conn.commit();
+    }
+}
+2. Relación 1:1 (Mascota y Expediente)
+Aquí no hay "Cascade". Tienes que crear el expediente primero para tener su ID antes de crear la mascota.
+
+Java
+public void crearMascotaConExpediente(String nombre, int clienteId) throws SQLException {
+    String sqlExp = "INSERT INTO expedientes (historial) VALUES (?)";
+    String sqlMascota = "INSERT INTO mascotas (nombre, id_cliente, id_expediente) VALUES (?, ?, ?)";
+
+    try (Connection conn = DriverManager.getConnection(URL, USER, PASS)) {
+        // 1. Crear Expediente
+        PreparedStatement ps1 = conn.prepareStatement(sqlExp, Statement.RETURN_GENERATED_KEYS);
+        ps1.setString(1, "Alta inicial");
+        ps1.executeUpdate();
+        
+        ResultSet rs = ps1.getGeneratedKeys();
+        int idExp = rs.next() ? rs.getInt(1) : -1;
+
+        // 2. Crear Mascota con la FK del expediente
+        PreparedStatement ps2 = conn.prepareStatement(sqlMascota);
+        ps2.setString(1, nombre);
+        ps2.setInt(2, clienteId);
+        ps2.setInt(3, idExp);
+        ps2.executeUpdate();
+    }
+}
+3. Consultas con Polimorfismo (El instanceof)
+En Hibernate hacías from Empleado. En SQL tienes que usar LEFT JOIN para saber qué "tipo" de hijo es cada fila.
+
+Java
+public void listarUsuarios() throws SQLException {
+    String sql = "SELECT u.nombre, v.num_colegiado, c.telefono " +
+                 "FROM usuarios u " +
+                 "LEFT JOIN veterinarios v ON u.id = v.id_usuario " +
+                 "LEFT JOIN clientes c ON u.id = c.id_usuario";
+
+    try (Connection conn = DriverManager.getConnection(URL, USER, PASS);
+         Statement st = conn.createStatement();
+         ResultSet rs = st.executeQuery(sql)) {
+
+        while (rs.next()) {
+            if (rs.getString("num_colegiado") != null) {
+                System.out.println("Es Veterinario: " + rs.getString("nombre"));
+            } else if (rs.getString("telefono") != null) {
+                System.out.println("Es Cliente: " + rs.getString("nombre"));
+            }
+        }
+    }
+}
